@@ -178,23 +178,26 @@ def edit_profile(user_id=None):
 @admin_required
 @user_ban
 def admin():
-    db_sess = db_session.create_session()
-    users = db_sess.query(User)
-    if request.method == "POST":
-        for user in users:
-            admin_value = request.form.get(f"admin_{user.id}")
-            ban_value = request.form.get(f"ban_{user.id}")
-            if admin_value == "admin":
-                user.admin = 1
-            if admin_value == "user":
-                user.admin = 0
-            if ban_value == "banned":
-                user.ban = 1
-            if ban_value == "unbanned":
-                user.ban = 0
+    form = RegisterForm()
+    if form.validate_on_submit():
+        if form.password.data != form.password_again.data:
+            return render_template('register.html', title='Регистрация',
+                                   form=form,
+                                   message="Пароли не совпадают")
+        db_sess = db_session.create_session()
+        if db_sess.query(User).filter(User.email == form.email.data).first():
+            return render_template('register.html', title='Регистрация',
+                                   form=form,
+                                   message="Такой пользователь уже есть")
+        user = User(
+            name=form.name.data,
+            email=form.email.data,
+        )
+        user.set_password(form.password.data)
+        db_sess.add(user)
         db_sess.commit()
-        return redirect('/admin')
-    return render_template("admin_first.html", users=users)
+        return redirect('/login')
+    return render_template("admin_first.html", form=form)
 
 
 if __name__ == '__main__':
