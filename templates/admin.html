@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Админ панель{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='admin_first.css') }}">
+{% endblock %}
+
+{% block content %}
+<a class="btn btn-task" href="/admin/task_list">Список задач</a>
+<a class="btn btn-task" href="/admin/competitions">Управление соревнованиями</a>
+<a class="btn btn-task" href="/admin/results">Управление результатами</a>
+
+<form method="post" action="/admin">
+<div class="table-container">
+    <table>
+        <tr>
+            <td>id</td>
+            <td>name</td>
+            <td>email</td>
+            <td>elo</td>
+            <td>admin</td>
+            <td>ban</td>
+        </tr>
+        {% for user in users %}
+        <tr>
+            <td>{{user.id}}</td>
+            <td>{{ user.name }}</td>
+            <td>{{user.email}}</td>
+            <td>{{user.elo_rating|round|int}}</td>
+            <td>
+                <select class="admin-select" name="admin_{{user.id}}">
+                    {% if user.admin == 1 %}
+                        <option value="admin" selected>admin</option>
+                        <option value="user">user</option>
+                    {% else %}
+                        <option value="admin">admin</option>
+                        <option value="user" selected>user</option>
+                    {% endif %}
+                </select>
+            </td>
+            <td>
+                <select class="ban-select" name="ban_{{user.id}}">
+                    {% if user.ban == 1 %}
+                        <option value="banned" selected>banned</option>
+                        <option value="unbanned">unbanned</option>
+                    {% else %}
+                        <option value="banned">banned</option>
+                        <option value="unbanned" selected>unbanned</option>
+                    {% endif %}
+                </select>
+            </td>
+            <td><a href="/admin/profile/{{user.id}}">Посмотреть статистику</a></td>
+            <td><a href="/edit/profile/{{user.id}}">Изменить профиль</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<button type="submit" id="applytBtn">Применить</button>
+</form>
+{% endblock %}
