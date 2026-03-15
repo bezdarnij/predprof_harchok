@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Главная{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='base.css') }}">
+    {% block styles %}{% endblock %}
+</head>
+<body>
+<header class="site-header">
+    <nav class="navbar">
+        <div class="nav-left">
+            {% if session.get('subject') and session.get('subject') != 'subject' %}
+            <a class="logo" href="/{{ session.get('subject') }}/">На главную</a>
+            {% else %}
+            <a class="logo" href="/">На главную</a>
+            {% endif %}
+        </div>
+
+        <div class="nav-right">
+            {% if current_user.is_authenticated %}
+                {% if subject != 'subject' and subject != None %}
+                <div class="subject-info" data-subject="{{ subject }}">
+                    <div class="subject-icon"></div>
+                    <div class="subject-info-content">
+                        <div class="subject-label">Ваш предмет:</div>
+                        <div class="subject-name">{{ subject|capitalize }}</div>
+                    </div>
+                    <div class="subject-actions">
+                        <a class="nav-link" href="/subject/choice">Сменить</a>
+                        <a class="nav-link" href="/{{ subject }}/pvp">PvP</a>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <a class="nav-link" href="/profile">Профиль</a>
+                <a class="nav-link" href="/analytics">Аналитика</a>
+                
+                {% if current_user.admin %}
+                    <a class="btn btn-admin" href="/admin">Админ-панель</a>
+                {% endif %}
+                
+                <div class="user-menu">
+                    <span class="username">{{ current_user.name }}</span>
+                    <a class="logout" href="/logout">Выйти</a>
+                </div>
+            {% else %}
+                <a class="btn btn-outline" href="/login">Войти</a>
+                <a class="btn btn-primary" href="/register">Регистрация</a>
+            {% endif %}
+        </div>
+    </nav>
+</header>
+
+<main class="page-content">
+    {% block content %}{% endblock %}
+</main>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>
