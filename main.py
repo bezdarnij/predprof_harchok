@@ -24,11 +24,6 @@ app.config['SECRET_KEY'] = '65432456uijhgfdsxcvbn'
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-socketio = SocketIO(app, cors_allowed_origins="*")
-matches = {}
-
-subjects = ['информатика', 'математика', 'физика', 'химия', 'биология', 'литература', 'история', 'география',
-            'английский язык', 'русский язык']
 
 
 @login_manager.user_loader
