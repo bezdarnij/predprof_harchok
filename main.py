@@ -113,8 +113,6 @@ def logout():
 
 
 @app.route('/profile')
-@app.route('/profile/<int:user_id>')
-@app.route('/admin/profile/<int:user_id>')
 @login_required
 @user_ban
 def profile(user_id=None):
@@ -127,48 +125,6 @@ def profile(user_id=None):
             abort(404)
     return render_template(
         'profile.html',
-    )
-
-
-@app.route('/edit/profile', methods=['GET', 'POST'])
-@app.route('/edit/profile/<int:user_id>', methods=['GET', 'POST'])
-@login_required
-@user_ban
-def edit_profile(user_id=None):
-    db_sess = db_session.create_session()
-    if user_id is None:
-        user = current_user
-    else:
-        user = db_sess.get(User, user_id)
-        if not user:
-            abort(404)
-        if user.id != current_user.id and not current_user.admin:
-            abort(403)
-
-    if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        email = request.form.get('email', '').strip()
-        password = request.form.get('password', '')
-        password_confirm = request.form.get('password_confirm', '')
-
-        if not name or not email:
-            message = "Имя и почта обязательны"
-        elif db_sess.query(User).filter(User.email == email, User.id != user.id).first():
-            message = "Эта почта уже используется"
-        elif password or password_confirm:
-            if password != password_confirm:
-                message = "Пароли не совпадают"
-            else:
-                user.set_password(password)
-
-        if message is None:
-            user.name = name
-            user.email = email
-            db_sess.commit()
-            return redirect(f"/profile/{user.id}")
-
-    return render_template(
-        'edit_profile.html',
         user=user
     )
 
