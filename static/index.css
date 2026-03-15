@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=Syne+Mono&display=swap');
+
+body {
+    background-color: #f2f1ed;
+    font-family: 'Syne', sans-serif;
+}
+
+.mono {
+    font-family: 'Syne Mono', monospace;
+}
+
+.upload-card {
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+    background: #fff;
+}
+
+.form-control {
+    background: #faf9f6;
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    padding: 28px 20px;
+    font-size: 14px;
+    color: #555;
+    cursor: pointer;
+}
+
+.form-control:focus {
+    border-color: #1a1a1a;
+    background: #f0efe9;
+    box-shadow: none;
+}
+
+.btn-dark {
+    background-color: #1a1a1a;
+    border-color: #1a1a1a;
+}
+
+.btn-dark:hover {
+    background-color: #333;
+    border-color: #333;
+}
