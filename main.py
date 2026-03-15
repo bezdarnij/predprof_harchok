@@ -135,7 +135,6 @@ def profile(user_id=None):
 @login_required
 @user_ban
 def edit_profile(user_id=None):
-    subject = session.get('subject')
     db_sess = db_session.create_session()
     if user_id is None:
         user = current_user
@@ -146,7 +145,6 @@ def edit_profile(user_id=None):
         if user.id != current_user.id and not current_user.admin:
             abort(403)
 
-    message = None
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
         email = request.form.get('email', '').strip()
@@ -171,9 +169,7 @@ def edit_profile(user_id=None):
 
     return render_template(
         'edit_profile.html',
-        user=user,
-        subject=subject,
-        message=message
+        user=user
     )
 
 
@@ -182,7 +178,6 @@ def edit_profile(user_id=None):
 @admin_required
 @user_ban
 def admin():
-    subject = session.get('subject')
     db_sess = db_session.create_session()
     users = db_sess.query(User)
     if request.method == "POST":
@@ -199,7 +194,7 @@ def admin():
                 user.ban = 0
         db_sess.commit()
         return redirect('/admin')
-    return render_template("admin_first.html", users=users, subject=subject)
+    return render_template("admin_first.html", users=users)
 
 
 if __name__ == '__main__':
