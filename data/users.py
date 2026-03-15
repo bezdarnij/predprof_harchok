@@ -15,7 +15,6 @@ class User(SqlAlchemyBase, UserMixin):
     email = sqlalchemy.Column(sqlalchemy.String,
                               index=True, unique=True, nullable=True)
     hashed_password = sqlalchemy.Column(sqlalchemy.String, nullable=True)
-    elo_rating = sqlalchemy.Column(sqlalchemy.Float, default=1000)
     admin = sqlalchemy.Column(sqlalchemy.Boolean, default=0)
     ban = sqlalchemy.Column(sqlalchemy.Boolean, default=0)
     created_date = sqlalchemy.Column(sqlalchemy.DateTime,

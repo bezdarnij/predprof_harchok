@@ -5,15 +5,8 @@ from flask import Flask, render_template, redirect, request, abort, session, Res
 from data import db_session
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from data.users import User
-from data.tasks import Tasks
-from data.submissions import Submissions
-from data.task_tests import TaskTest
 from forms.user import RegisterForm, LoginForm
-from flask_socketio import SocketIO, join_room, leave_room, emit
-import uuid
 import os
-import subprocess
-
 from functools import wraps
 from collections import defaultdict
 from datetime import datetime
@@ -203,4 +196,4 @@ def admin():
 
 
 if __name__ == '__main__':
-    socketio.run(app, port=8080, host='127.0.0.1', allow_unsafe_werkzeug=True, debug=True)
+    app.run(port=8080, host='127.0.0.1', debug=True)
