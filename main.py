@@ -55,6 +55,14 @@ def favicon():
 
 @app.route("/")
 def index():
+    if request.method == "POST":
+        file = request.files.get("file")
+        if not file or file.filename == "":
+            abort(400, "Файл не выбран")
+        file.filename = f"audio_{audio_id}.npz"
+        os.makedirs(f"audio/audio_{current_user.id}/task_{audio_id}", exist_ok=True)
+        file.save(os.path.join(f"audio/audio_{current_user.id}/audio_{audio_id}", file.filename))
+        return redirect('/statistic')
     return render_template('index.html')
 
 
