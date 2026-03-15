@@ -54,7 +54,6 @@ def favicon():
 
 
 @app.route("/")
-@user_ban
 def index():
     return render_template('index.html')
 
