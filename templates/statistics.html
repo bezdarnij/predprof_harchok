@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">📊 Аналитическая панель сигналов</h2>
+    
+    {% if prediction %}
+    <div class="card border-primary mb-4">
+        <div class="card-header bg-primary text-white">Результат анализа загруженного файла</div>
+        <div class="card-body">
+            <h5 class="card-title">Источник: <span class="text-primary">{{ prediction.planet }}</span></h5>
+            <p class="card-text">Вероятность корректного определения: <strong>{{ prediction.conf }}%</strong></p>
+            <div class="progress" style="height: 10px;">
+                <div class="progress-bar bg-success" role="progressbar" style="width: {{ prediction.conf }}%"></div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Кривая обучения (Accuracy)</h5>
+                    <p class="text-muted small">Демонстрирует, как нейросеть улучшала свои показатели с каждой эпохой.</p>
+                    <canvas id="accuracyChart" style="max-height: 400px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Топ-5 цивилизаций</h5>
+                    <p class="text-muted small">Распределение по валидационной выборке.</p>
+                    <canvas id="top5Chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Получаем данные из Flask (передаются через переменную data)
+    const analytics = {{ data | tojson }};
+
+    if (analytics && analytics.history) {
+        // 1. Линейный график Accuracy
+        const ctxAcc = document.getElementById('accuracyChart').getContext('2d');
+        new Chart(ctxAcc, {
+            type: 'line',
+            data: {
+                labels: analytics.history.epochs,
+                datasets: [
+                    {
+                        label: 'Точность (Train)',
+                        data: analytics.history.accuracy,
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        fill: true,
+                        borderWidth: 2,
+                        tension: 0.3
+                    },
+                    {
+                        label: 'Точность (Val)',
+                        data: analytics.history.val_accuracy,
+                        borderColor: '#dc3545',
+                        borderDash: [5, 5],
+                        fill: false,
+                        borderWidth: 2,
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                scales: {
+                    y: { beginAtZero: true, max: 1, title: { display: true, text: 'Процент точности' } },
+                    x: { title: { display: true, text: 'Эпохи обучения' } }
+                }
+            }
+        });
+
+        // 2. Круговая диаграмма Топ-5
+        const top5Labels = analytics.top_5_validation.map(item => item[0]);
+        const top5Values = analytics.top_5_validation.map(item => item[1]);
+
+        const ctxTop = document.getElementById('top5Chart').getContext('2d');
+        new Chart(ctxTop, {
+            type: 'doughnut',
+            data: {
+                labels: top5Labels,
+                datasets: [{
+                    data: top5Values,
+                    backgroundColor: ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#fd7e14'],
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    } else {
+        console.error("Данные аналитики не загружены.");
+    }
+</script>
+{% endblock %}

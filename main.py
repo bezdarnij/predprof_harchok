@@ -1,7 +1,9 @@
 import csv
 import io
-
-from flask import Flask, render_template, redirect, request, abort, session, Response
+import json
+import numpy as np
+import tensorflow as tf
+from flask import Flask, render_template, redirect, request, abort, session, Response, jsonify
 from data import db_session
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from data.users import User
@@ -13,6 +15,43 @@ from datetime import datetime
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '65432456uijhgfdsxcvbn'
+
+
+MODEL_PATH = 'alien_signals_model.h5'
+MAP_PATH = 'classes_map.json'
+ANALYTICS_PATH = 'analytics.json'
+
+model = None
+class_map = {}
+
+if os.path.exists(MODEL_PATH):
+    model = tf.keras.models.load_model(MODEL_PATH)
+if os.path.exists(MAP_PATH):
+    with open(MAP_PATH, 'r', encoding='utf-8') as f:
+        class_map = json.load(f)
+inv_map = {v: k for k, v in class_map.items()}
+
+
+def predict_signal(file_path):
+    try:
+        data = np.load(file_path, allow_pickle=True)
+        x_test = data['test_x'][0]
+
+        target_frames, fft_size = 64, 64
+        s = np.array(x_test).flatten()
+        needed_len = target_frames * fft_size
+        s = np.pad(s, (0, max(0, needed_len - len(s))))[:needed_len]
+        spec = np.abs(np.fft.rfft(s.reshape(target_frames, fft_size), axis=1))
+        spec = np.log(spec + 1e-7)
+        spec = (spec - np.mean(spec)) / (np.std(spec) + 1e-7)
+
+        input_data = np.expand_dims(spec, axis=(0, -1))
+        preds = model.predict(input_data)
+        idx = np.argmax(preds)
+        return inv_map.get(idx, "Unknown"), float(np.max(preds))
+    except Exception as e:
+        return str(e), 0
+
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -48,22 +87,45 @@ def user_ban(func):
     return wrapper
 
 
-@app.route('/favicon.ico')
-def favicon():
-    return '', 204
-
-
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
+        if not current_user.is_authenticated:
+            return redirect('/login')
+
         file = request.files.get("file")
         if not file or file.filename == "":
             abort(400, "Файл не выбран")
-        file.filename = f"audio_{audio_id}.npz"
-        os.makedirs(f"audio/audio_{current_user.id}/task_{audio_id}", exist_ok=True)
-        file.save(os.path.join(f"audio/audio_{current_user.id}/audio_{audio_id}", file.filename))
-        return redirect('/statistic')
+
+        # Сохранение
+        os.makedirs(f"audio/audio_{current_user.id}", exist_ok=True)
+        file_path = os.path.join(f"audio/audio_{current_user.id}", "file.npz")
+        file.save(file_path)
+
+
+        res_planet, res_conf = predict_signal(file_path)
+        session['last_prediction'] = {"planet": res_planet, "conf": round(res_conf * 100, 2)}
+
+        return redirect('/statistics')
     return render_template('index.html')
+
+
+@app.route('/statistics')
+@login_required
+def statistic():
+    if os.path.exists(ANALYTICS_PATH):
+        with open(ANALYTICS_PATH, 'r', encoding='utf-8') as f:
+            analytics_data = json.load(f)
+    else:
+        analytics_data = {}
+
+    prediction = session.get('last_prediction', None)
+    return render_template('statistics.html', data=analytics_data, prediction=prediction)
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -113,8 +175,6 @@ def logout():
 
 
 @app.route('/profile')
-@app.route('/profile/<int:user_id>')
-@app.route('/admin/profile/<int:user_id>')
 @login_required
 @user_ban
 def profile(user_id=None):
@@ -127,48 +187,6 @@ def profile(user_id=None):
             abort(404)
     return render_template(
         'profile.html',
-    )
-
-
-@app.route('/edit/profile', methods=['GET', 'POST'])
-@app.route('/edit/profile/<int:user_id>', methods=['GET', 'POST'])
-@login_required
-@user_ban
-def edit_profile(user_id=None):
-    db_sess = db_session.create_session()
-    if user_id is None:
-        user = current_user
-    else:
-        user = db_sess.get(User, user_id)
-        if not user:
-            abort(404)
-        if user.id != current_user.id and not current_user.admin:
-            abort(403)
-
-    if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        email = request.form.get('email', '').strip()
-        password = request.form.get('password', '')
-        password_confirm = request.form.get('password_confirm', '')
-
-        if not name or not email:
-            message = "Имя и почта обязательны"
-        elif db_sess.query(User).filter(User.email == email, User.id != user.id).first():
-            message = "Эта почта уже используется"
-        elif password or password_confirm:
-            if password != password_confirm:
-                message = "Пароли не совпадают"
-            else:
-                user.set_password(password)
-
-        if message is None:
-            user.name = name
-            user.email = email
-            db_sess.commit()
-            return redirect(f"/profile/{user.id}")
-
-    return render_template(
-        'edit_profile.html',
         user=user
     )
 

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль - {{ user.name }}{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <div class="user-info">
+            <div class="avatar">{{ user.name[0].upper() }}</div>
+            <div class="user-details">
+                <h1>{{ user.name }}</h1>
+                <p class="email">{{ user.email }}</p>
+                <p class="member-since">Зарегистрирован: {{ user.created_date.strftime('%d.%m.%Y') }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
