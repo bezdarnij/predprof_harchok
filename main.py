@@ -35,22 +35,48 @@ inv_map = {v: k for k, v in class_map.items()}
 def predict_signal(file_path):
     try:
         data = np.load(file_path, allow_pickle=True)
-        x_test = data['test_x'][0]
 
+        # Ищем ключ, в котором лежат ЧИСЛА (сигналы), а не строки
+        signal_key = None
+        for key in data.keys():
+            # Проверяем первый элемент массива на тип данных
+            first_element = np.array(data[key]).flatten()[0]
+            if isinstance(first_element, (int, float, np.number)):
+                signal_key = key
+                break
+
+        if signal_key is None:
+            return "В файле не найдено числовых данных (сигналов)", 0
+
+        x_test = data[signal_key]
+
+        # Если там массив массивов, берем первый сигнал
+        if len(x_test.shape) > 1:
+            x_test = x_test[0]
+
+        # Убеждаемся, что данные числовые, принудительно конвертируя в float
+        x_test = np.array(x_test, dtype=np.float32).flatten()
+
+        # --- Тот же препроцессинг (спектрограмма) ---
         target_frames, fft_size = 64, 64
-        s = np.array(x_test).flatten()
         needed_len = target_frames * fft_size
-        s = np.pad(s, (0, max(0, needed_len - len(s))))[:needed_len]
+        s = np.pad(x_test, (0, max(0, needed_len - len(x_test))))[:needed_len]
+
         spec = np.abs(np.fft.rfft(s.reshape(target_frames, fft_size), axis=1))
         spec = np.log(spec + 1e-7)
         spec = (spec - np.mean(spec)) / (np.std(spec) + 1e-7)
 
         input_data = np.expand_dims(spec, axis=(0, -1))
-        preds = model.predict(input_data)
-        idx = np.argmax(preds)
-        return inv_map.get(idx, "Unknown"), float(np.max(preds))
+
+        if model is not None:
+            preds = model.predict(input_data)
+            idx = np.argmax(preds)
+            return inv_map.get(idx, "Неизвестная раса"), float(np.max(preds))
+        else:
+            return "Модель не загружена на сервер", 0
+
     except Exception as e:
-        return str(e), 0
+        return f"Ошибка обработки: {str(e)}", 0
 
 
 login_manager = LoginManager()
@@ -196,26 +222,7 @@ def profile(user_id=None):
 @admin_required
 @user_ban
 def admin():
-    form = RegisterForm()
-    if form.validate_on_submit():
-        if form.password.data != form.password_again.data:
-            return render_template('register.html', title='Регистрация',
-                                   form=form,
-                                   message="Пароли не совпадают")
-        db_sess = db_session.create_session()
-        if db_sess.query(User).filter(User.email == form.email.data).first():
-            return render_template('register.html', title='Регистрация',
-                                   form=form,
-                                   message="Такой пользователь уже есть")
-        user = User(
-            name=form.name.data,
-            email=form.email.data,
-        )
-        user.set_password(form.password.data)
-        db_sess.add(user)
-        db_sess.commit()
-        return redirect('/login')
-    return render_template("admin_first.html", form=form)
+    return redirect('/register')
 
 
 if __name__ == '__main__':
